@@ -1,3 +1,8 @@
+import os
+import json
+import zipfile
+import time
+
 # create an inverted index for the corpus
 # tokens = alphanumeric sequences in the dataset
 # stemming = better textual matches
@@ -11,3 +16,20 @@
 # posting = representation of token's occurrence in document (doc id/name + tf-idf score)
 
 # m1 -- use token frequency instead of tf-idf score
+
+
+def indexer():
+    # Iterate through zip file folders by turning it into a directory and walking through it
+    with zipfile.ZipFile("analyst.zip", "r") as zipped:
+        files = zipped.namelist()
+        for name in files:
+            extension = os.path.splitext(name)[-1]
+            if extension == ".json":
+                print(name)
+                time.sleep(1)
+
+            
+
+
+if __name__ == "__main__":
+    indexer()
