@@ -2,6 +2,7 @@ import os
 import json
 import zipfile
 import time
+from bs4 import BeautifulSoup
 
 # create an inverted index for the corpus
 # tokens = alphanumeric sequences in the dataset
@@ -19,13 +20,48 @@ import time
 
 
 def indexer():
+    # Create count and map
+    count = 0;
+    docID_map = dict();
+
     # Iterate through zip file folders by turning it into a directory and walking through it
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
         for name in files:
             extension = os.path.splitext(name)[-1]
             if extension == ".json":
-                print(name)
+                                
+                with open(name, "r") as json_file:
+                    json_data = json_file.read()
+
+                doc = json.loads(json_data)
+            
+                
+                the_soup = BeautifulSoup(doc["content"], "html.parser")
+                # print(the_soup)                             # PRINT CHECK creates bs object
+                 
+                text = the_soup.find_all("p", "pre", "li", "title", "h1") 
+                text.extend(the_soup.find_all("h2", "h3", "h4", "h5", "h6"))
+                
+                if len(text) == 0:
+                    print("NON HTML FOUND")
+                    print("\n")
+                    continue
+                
+
+                docID_map[name] = count                             # doc name is key, ID is value    
+                # print(docID_map[name], name)              # PRINT CHECK print docID dict
+                count += 1;
+
+
+                print(text)
+                print("\n")
+
+
+
+                # print(str(doc["content"]))                # PRINT CHECK prints html file
+                # print("\n")
+
                 time.sleep(1)
 
             
