@@ -3,6 +3,7 @@ import json
 import zipfile
 from bs4 import BeautifulSoup
 import time
+import nltk
 
 # create an inverted index for the corpus
 # tokens = alphanumeric sequences in the dataset
@@ -20,7 +21,7 @@ import time
 
 
 def indexer():
-    # Iterate through zip file folders by turning it into a directory and walking through it
+    # Iterate through the json files found in the zip file
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
         for name in files:
@@ -31,14 +32,18 @@ def indexer():
                     json_dict = json.loads(json_content)
                     page_soup = BeautifulSoup(json_dict['content'], "html.parser")
                     text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
-                    current_text = ""
-                    for chunk in text:
-                        current_text += chunk.get_text()
+                    if len(text) > 0:
+                        current_text = ""
+                        for chunk in text:
+                            current_text += chunk.get_text()
                     
-                    print(current_text)
+                    
+                    
                 time.sleep(1)
 
-            
+ def tokenize_words(text):
+     # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
+                
 
 
 if __name__ == "__main__":
