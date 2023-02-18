@@ -4,7 +4,8 @@ import zipfile
 from bs4 import BeautifulSoup
 import time
 import nltk
-
+from tokenizer import computeWordFrequencies
+from collections import defaultdict
 # create an inverted index for the corpus
 # tokens = alphanumeric sequences in the dataset
 # stemming = better textual matches
@@ -22,8 +23,10 @@ import nltk
 
 def indexer():
     # Iterate through the json files found in the zip file
+    token_dict = defaultdict(dict)
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
+        docID = 0
         for name in files:
             extension = os.path.splitext(name)[-1]
             if extension == ".json":
@@ -36,14 +39,29 @@ def indexer():
                         current_text = ""
                         for chunk in text:
                             current_text += chunk.get_text()
-                    
-                    
-                    
-                time.sleep(1)
+                        
+                        tokens_freqs = tokenize_words(current_text)
+                        for key, value in tokens_freqs.items():
+                            token_dict[key][docID] = value
 
- def tokenize_words(text):
-     # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
-                
+                        docID += 1
+                    
+    print(token_dict.items())                    
+
+def tokenize_words(text):
+    # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
+    stemmer = nltk.stem.PorterStemmer()
+    words = nltk.tokenize.word_tokenize(text)
+    words = [stemmer.stem(word) for word in words]
+    alphanumeric_words = []
+    for word in words:
+        if word.isalnum():
+            alphanumeric_words.append(word)
+
+    return computeWordFrequencies(alphanumeric_words)
+
+    
+    
 
 
 if __name__ == "__main__":
