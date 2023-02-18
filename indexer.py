@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import time
 import nltk
 from tokenizer import computeWordFrequencies
+from collections import defaultdict
 # create an inverted index for the corpus
 # tokens = alphanumeric sequences in the dataset
 # stemming = better textual matches
@@ -22,6 +23,7 @@ from tokenizer import computeWordFrequencies
 
 def indexer():
     # Iterate through the json files found in the zip file
+    token_dict = defaultdict(dict)
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
         docID = 0
@@ -38,11 +40,13 @@ def indexer():
                         for chunk in text:
                             current_text += chunk.get_text()
                         
-                        print(tokenize_words(current_text))
+                        tokens_freqs = tokenize_words(current_text)
+                        for key, value in tokens_freqs.items():
+                            token_dict[key][docID] = value
+
+                        docID += 1
                     
-                    
-                    
-                time.sleep(1)
+    print(token_dict.items())                    
 
 def tokenize_words(text):
     # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
