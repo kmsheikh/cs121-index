@@ -1,6 +1,7 @@
 import os
 import json
 import zipfile
+from bs4 import BeautifulSoup
 import time
 
 # create an inverted index for the corpus
@@ -25,7 +26,16 @@ def indexer():
         for name in files:
             extension = os.path.splitext(name)[-1]
             if extension == ".json":
-                print(name)
+                with zipped.open(name) as json_file:
+                    json_content = json_file.read()
+                    json_dict = json.loads(json_content)
+                    page_soup = BeautifulSoup(json_dict['content'], "html.parser")
+                    text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
+                    current_text = ""
+                    for chunk in text:
+                        current_text += chunk.get_text()
+                    
+                    print(current_text)
                 time.sleep(1)
 
             
