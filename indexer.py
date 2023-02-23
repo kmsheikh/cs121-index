@@ -23,30 +23,44 @@ from collections import defaultdict
 
 def indexer():
     # Iterate through the json files found in the zip file
-    token_dict = defaultdict(dict)
+    index = defaultdict(dict)
+    
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
         docID = 0
+        
         for name in files:
             extension = os.path.splitext(name)[-1]
+            
             if extension == ".json":
                 with zipped.open(name) as json_file:
                     json_content = json_file.read()
                     json_dict = json.loads(json_content)
-                    page_soup = BeautifulSoup(json_dict['content'], "html.parser")
-                    text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
-                    if len(text) > 0:
-                        current_text = ""
-                        for chunk in text:
-                            current_text += chunk.get_text()
-                        
-                        tokens_freqs = tokenize_words(current_text)
-                        for key, value in tokens_freqs.items():
-                            token_dict[key][docID] = value
-
-                        docID += 1
                     
-    print(token_dict.items())                    
+                    page_soup = BeautifulSoup(json_dict['content'], "html.parser")
+                    check_html = page_soup.find_all("html")
+                    
+                    if check_html:
+                        docID += 1
+                        text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
+                        
+                        for chunk in text:
+                            word_list = tokenize_words(chunk.get_text())
+                            word_freq = computeWordFrequencies(word_list)       
+
+                            for word in word_freq:
+                                index[word][docID] = word_freq[word]    # Add value, defualt value is 0
+
+            #time.sleep(1)
+    
+    index_list = sorted(index.items(), key=lambda x: (x[0]))                
+    
+    for elem in index_list:
+        print("{} -> {}".format(elem[0], elem[1].items()))
+
+    #index = sorted(index.items())
+    #print(token_dict.items())                    
+
 
 def tokenize_words(text):
     # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
@@ -54,12 +68,13 @@ def tokenize_words(text):
     words = nltk.tokenize.word_tokenize(text)
     words = [stemmer.stem(word) for word in words]
     alphanumeric_words = []
+    
     for word in words:
         if word.isalnum():
             alphanumeric_words.append(word)
 
-    return computeWordFrequencies(alphanumeric_words)
-
+    #return computeWordFrequencies(alphanumeric_words)
+    return alphanumeric_words
     
     
 
