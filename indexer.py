@@ -43,23 +43,32 @@ def indexer():
                     if check_html:
                         docID += 1
                         text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
-                        
+                        # TASK: include seprate find_all for title, bold, strong. h1. etc
+                        #       to add more weights on the document score
+
                         for chunk in text:
                             word_list = tokenize_words(chunk.get_text())
                             word_freq = computeWordFrequencies(word_list)       
 
-                            for word in word_freq:
-                                index[word][docID] = word_freq[word]    # Add value, defualt value is 0
+                            for key in word_freq:
+                                if key in index and docID in index[key]:
+                                    index[key][docID] += word_freq[key]         # if key and docID exist, add value to dict
+                                else:
+                                    index[key][docID] = word_freq[key]          # else initialize dict key
 
-            #time.sleep(1)
+
+
     
     index_list = sorted(index.items(), key=lambda x: (x[0]))                
     
-    for elem in index_list:
-        print("{} -> {}".format(elem[0], elem[1].items()))
-
-    #index = sorted(index.items())
-    #print(token_dict.items())                    
+    with open("WordIndex.txt", "w") as index_file:
+        for elem in index_list:
+            index_file.write("{} ->".format(elem[0])),
+        
+            for doc, count in elem[1].items():
+                index_file.write(" {}: ({}) ".format(doc, count)),
+            
+            index_file.write("\n")
 
 
 def tokenize_words(text):
