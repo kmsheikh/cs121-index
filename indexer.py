@@ -3,9 +3,7 @@ import json
 import zipfile
 from bs4 import BeautifulSoup
 import time
-from nltk.tokenize import word_tokenize
-from nltk.stem import PorterStemmer
-from tokenizer import computeWordFrequencies
+import tokenizer
 from collections import defaultdict
 import psutil
 import sys
@@ -93,22 +91,6 @@ def indexer():
     
     vocab_file.close()
 
-
-
-def tokenize_words(text: str) -> list:
-    # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
-    port = PorterStemmer()
-    alnum_list = []
-    word_list = word_tokenize(text)
-
-    for word in word_list:
-        word = port.stem(word)
-
-        if word.isalnum():
-            alnum_list.append(word)
-
-    return alnum_list   
-    
 
 
 if __name__ == "__main__":

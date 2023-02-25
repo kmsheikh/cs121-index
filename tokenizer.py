@@ -1,26 +1,19 @@
-def tokenize(filePath : str) -> list[str]:
-    # read text file and return list of tokens
-    # should run in linear time to text file size
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
 
-    # check input for readability
-    f = ""
-    try:
-        f = open(filePath, "r")
-    except:
-        print("Couldn't open file ", filePath)
-        return False                    # return False if cannot read
+def tokenize_words(text: str) -> list:
+    # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
+    port = PorterStemmer()
+    alnum_list = []
+    word_list = word_tokenize(text)
 
-    tokens = []
-    # read file
-    txtfile = f.readlines()
-    for text in txtfile:                # process line by line
-        text = re.split("\W", text)     # split at non-word characters
-        for t in text:                  # add each word to the list
-            if len(t) > 0:
-                tokens.append(t)
-    
-    f.close()
-    return tokens
+    for word in word_list:
+        word = port.stem(word)
+
+        if word.isalnum():
+            alnum_list.append(word)
+
+    return alnum_list
 
 
 def computeWordFrequencies(tokenList : list[str]) -> dict[str, int]:
