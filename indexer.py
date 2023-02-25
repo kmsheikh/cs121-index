@@ -2,10 +2,11 @@ import os
 import json
 import zipfile
 from bs4 import BeautifulSoup
-import time
+import sys
 import nltk
 from tokenizer import computeWordFrequencies
 from collections import defaultdict
+import psutil
 # create an inverted index for the corpus
 # tokens = alphanumeric sequences in the dataset
 # stemming = better textual matches
@@ -23,30 +24,57 @@ from collections import defaultdict
 
 def indexer():
     # Iterate through the json files found in the zip file
-    token_dict = defaultdict(dict)
+    index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
+    
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
         docID = 0
         for name in files:
-            extension = os.path.splitext(name)[-1]
+
+            extension = os.path.splitext(name)[-1]  
             if extension == ".json":
                 with zipped.open(name) as json_file:
                     json_content = json_file.read()
                     json_dict = json.loads(json_content)
                     page_soup = BeautifulSoup(json_dict['content'], "html.parser")
-                    text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
-                    if len(text) > 0:
-                        current_text = ""
-                        for chunk in text:
-                            current_text += chunk.get_text()
-                        
-                        tokens_freqs = tokenize_words(current_text)
-                        for key, value in tokens_freqs.items():
-                            token_dict[key][docID] = value
-
-                        docID += 1
+                    check_html = page_soup.find_all("html")
                     
-    print(token_dict.items())                    
+                    if check_html:
+                        docID += 1
+                        print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC # {docID}. Size of DICT is {sys.getsizeof(index)}")
+                        text = page_soup.find_all(["p", "pre", "li"]) # Get non-important words from html
+                        
+                        # TASK: include seprate find_all for title, bold, strong. h1. etc
+                        #       to add more weights on the document score
+                        for chunk in text:
+                            word_list = tokenize_words(chunk.get_text())
+                            word_freq = computeWordFrequencies(word_list)       
+                            for key in word_freq:
+                                index[key][docID][0] += word_freq[key] 
+
+                        text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"]) # Get "important" words from html (replaces text for memory conservation)
+                    
+                        for chunk in text:
+                            word_list = tokenize_words(chunk.get_text())
+                            word_freq = computeWordFrequencies(word_list)  
+                            for key in word_freq:
+                                index[key][docID][1] += word_freq[key] 
+
+
+
+    
+    index_list = sorted(index.items(), key=lambda x: (x[0]))                
+    print(f"{psutil.virtual_memory()[2]} percent of RAM used at END")
+
+    with open("WordIndex.txt", "w", encoding="utf-8") as index_file:
+        for elem in index_list:
+            index_file.write("{} ".format(elem[0])),
+        
+            for doc, count in elem[1].items():
+                index_file.write("{}.{}.{} ".format(doc, count[0], count[1])),
+            
+            index_file.write("\n")
+
 
 def tokenize_words(text):
     # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
