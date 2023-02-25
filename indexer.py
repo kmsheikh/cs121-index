@@ -26,7 +26,7 @@ def indexer():
     # Iterate through the json files found in the zip file
     index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     
-    with zipfile.ZipFile("analyst.zip", "r") as zipped:
+    with zipfile.ZipFile("developer.zip", "r") as zipped:
         files = zipped.namelist()
         docID = 0
         for name in files:
@@ -37,31 +37,28 @@ def indexer():
                     json_content = json_file.read()
                     json_dict = json.loads(json_content)
                     page_soup = BeautifulSoup(json_dict['content'], "html.parser")
-                    check_html = page_soup.find_all("html")
                     
-                    if check_html:
+                    print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC # {docID}. Size of DICT is {sys.getsizeof(index)}")
+                    text = page_soup.find_all(["p", "pre", "li"]) # Get non-important words from html
+                    non_important_count = len(text)     # Get length of previous findall
+                    # TASK: include seprate find_all for title, bold, strong. h1. etc
+                    #       to add more weights on the document score
+                    for chunk in text:
+                        word_list = tokenize_words(chunk.get_text())
+                        word_freq = computeWordFrequencies(word_list)       
+                        for key in word_freq:
+                            index[key][docID][0] += word_freq[key] 
+
+                    text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"]) # Get "important" words from html (replaces text for memory conservation)
+                    important_count = len(text)         # Get length of previous findall
+                    for chunk in text:
+                        word_list = tokenize_words(chunk.get_text())
+                        word_freq = computeWordFrequencies(word_list)  
+                        for key in word_freq:
+                            index[key][docID][1] += word_freq[key] 
+                    
+                    if non_important_count + important_count > 0:
                         docID += 1
-                        print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC # {docID}. Size of DICT is {sys.getsizeof(index)}")
-                        text = page_soup.find_all(["p", "pre", "li"]) # Get non-important words from html
-                        
-                        # TASK: include seprate find_all for title, bold, strong. h1. etc
-                        #       to add more weights on the document score
-                        for chunk in text:
-                            word_list = tokenize_words(chunk.get_text())
-                            word_freq = computeWordFrequencies(word_list)       
-                            for key in word_freq:
-                                index[key][docID][0] += word_freq[key] 
-
-                        text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"]) # Get "important" words from html (replaces text for memory conservation)
-                    
-                        for chunk in text:
-                            word_list = tokenize_words(chunk.get_text())
-                            word_freq = computeWordFrequencies(word_list)  
-                            for key in word_freq:
-                                index[key][docID][1] += word_freq[key] 
-
-
-
     
     index_list = sorted(index.items(), key=lambda x: (x[0]))                
     print(f"{psutil.virtual_memory()[2]} percent of RAM used at END")
