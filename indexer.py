@@ -7,6 +7,7 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 from tokenizer import computeWordFrequencies
 from collections import defaultdict
+import psutil
 # create an inverted index for the corpus
 # tokens = alphanumeric sequences in the dataset
 # stemming = better textual matches
@@ -24,16 +25,16 @@ from collections import defaultdict
 
 def indexer():
     # Iterate through the json files found in the zip file
-    index = defaultdict(dict)
-    lookup_file = open("docID.txt", "a")
+    index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
+    lookup_file = open("docID.txt", "a", encoding="utf-8")
     
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
         docID = 0
         
         for name in files:
-            extension = os.path.splitext(name)[-1]
-            
+            extension = os.path.splitext(name)[-1]  
+
             if extension == ".json":
                 with zipped.open(name) as json_file:
                     json_content = json_file.read()
@@ -44,35 +45,38 @@ def indexer():
                     
                     if check_html:
                         docID += 1
-                        lookup_file.write("{} {}\n".format(docID, json_dict["url"]))
+                        lookup_file.write("{} {}\n".format(docID, json_dict["url"]))              # Append to docID lookup table
 
-                        text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
-                        # TASK: include seprate find_all for title, bold, strong. h1. etc
-                        #       to add more weights on the document score
-
+                        print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC           # {docID}. Size of DICT is {sys.getsizeof(index)}")
+                        
+                        text = page_soup.find_all(["p", "pre", "li", "h4", "h5", "h6"])           # Get non-important words from html
+                
                         for chunk in text:
                             word_list = tokenize_words(chunk.get_text())
                             word_freq = computeWordFrequencies(word_list)       
-
                             for key in word_freq:
-                                if key in index and docID in index[key]:
-                                    index[key][docID] += word_freq[key]         # if key and docID exist, add value to dict
-                                else:
-                                    index[key][docID] = word_freq[key]          # else initialize dict key
+                                index[key][docID][0] += word_freq[key] 
+
+                        text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"])     # Get "important" words from html (replaces text for memory conservation)
+                    
+                        for chunk in text:
+                            word_list = tokenize_words(chunk.get_text())
+                            word_freq = computeWordFrequencies(word_list)  
+                            for key in word_freq:
+                                index[key][docID][1] += word_freq[key] 
 
 
-            # time.sleep(1)
-    
     lookup_file.close()
-
-    index_list = sorted(index.items(), key=lambda x: (x[0]))                
     
-    with open("WordIndex.txt", "w") as index_file:
+    index_list = sorted(index.items(), key=lambda x: (x[0]))                
+    print(f"{psutil.virtual_memory()[2]} percent of RAM used at END")
+
+    with open("WordIndex.txt", "w", encoding="utf-8") as index_file:
         for elem in index_list:
-            index_file.write("{}".format(elem[0])),
+            index_file.write("{} ".format(elem[0])),
         
             for doc, count in elem[1].items():
-                index_file.write(" {}.{}".format(doc, count)),
+                index_file.write("{}.{}.{} ".format(doc, count[0], count[1])),
             
             index_file.write("\n")
 
@@ -89,13 +93,6 @@ def tokenize_words(text: str) -> list:
         if word.isalnum():
             alnum_list.append(word)
 
-    #words = [stemmer.stem(word) for word in words]
-        
-    #for word in words:
-     #   if word.isalnum():
-      #      alphanumeric_words.append(word)
-
-    #return computeWordFrequencies(alphanumeric_words)
     return alnum_list
     
     
