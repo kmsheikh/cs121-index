@@ -2,7 +2,7 @@ import os
 import json
 import zipfile
 from bs4 import BeautifulSoup
-import time
+import sys
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 from tokenizer import computeWordFrequencies
@@ -40,29 +40,29 @@ def indexer():
                     json_content = json_file.read()
                     json_dict = json.loads(json_content)
                     
-                    page_soup = BeautifulSoup(json_dict['content'], "html.parser")
+                    page_soup = BeautifulSoup(json_dict['content'], "html.parser")   
+                    lookup_file.write("{} {}\n".format(docID, json_dict["url"]))              # Append to docID lookup table
+
+                    print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC # {docID}. Size of DICT is {sys.getsizeof(index)}")
                     
-                    if check_html:
+                    text = page_soup.find_all(["p", "pre", "li", "h4", "h5", "h6"])           # Get non-important words from html
+                    text_size = len(text)
+                    for chunk in text:
+                        word_list = tokenize_words(chunk.get_text())
+                        word_freq = computeWordFrequencies(word_list)       
+                        for key in word_freq:
+                            index[key][docID][0] += word_freq[key] 
+
+                    text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"])     # Get "important" words from html (replaces text for memory conservation)
+                    important_text_size = len(text)
+                    for chunk in text:
+                        word_list = tokenize_words(chunk.get_text())
+                        word_freq = computeWordFrequencies(word_list)  
+                        for key in word_freq:
+                            index[key][docID][1] += word_freq[key] 
+                    
+                    if text_size + important_text_size > 0:
                         docID += 1
-                        lookup_file.write("{} {}\n".format(docID, json_dict["url"]))              # Append to docID lookup table
-
-                        print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC           # {docID}. Size of DICT is {sys.getsizeof(index)}")
-                        
-                        text = page_soup.find_all(["p", "pre", "li", "h4", "h5", "h6"])           # Get non-important words from html
-                
-                        for chunk in text:
-                            word_list = tokenize_words(chunk.get_text())
-                            word_freq = computeWordFrequencies(word_list)       
-                            for key in word_freq:
-                                index[key][docID][0] += word_freq[key] 
-
-                        text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"])     # Get "important" words from html (replaces text for memory conservation)
-                    
-                        for chunk in text:
-                            word_list = tokenize_words(chunk.get_text())
-                            word_freq = computeWordFrequencies(word_list)  
-                            for key in word_freq:
-                                index[key][docID][1] += word_freq[key] 
 
 
     lookup_file.close()
