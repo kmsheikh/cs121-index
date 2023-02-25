@@ -8,6 +8,7 @@ from nltk.stem import PorterStemmer
 from tokenizer import computeWordFrequencies
 from collections import defaultdict
 import psutil
+import sys
 # create an inverted index for the corpus
 # tokens = alphanumeric sequences in the dataset
 # stemming = better textual matches
@@ -27,11 +28,13 @@ def indexer():
     # Iterate through the json files found in the zip file
     index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     lookup_file = open("docID.txt", "a", encoding="utf-8")
-    
+    reject_file = open("reject.txt", "a", encoding="utf-8")     # CHECKING REJECTS
+
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
         docID = 0
-        
+        reject_count = 0        # CHECKING REJECTS
+
         for name in files:
             extension = os.path.splitext(name)[-1]  
 
@@ -47,7 +50,7 @@ def indexer():
                         docID += 1
                         lookup_file.write("{} {}\n".format(docID, json_dict["url"]))              # Append to docID lookup table
 
-                        print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC           # {docID}. Size of DICT is {sys.getsizeof(index)}")
+#                        print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC {docID}. Size of DICT is {sys.getsizeof(index)}")
                         
                         text = page_soup.find_all(["p", "pre", "li", "h4", "h5", "h6"])           # Get non-important words from html
                 
@@ -64,21 +67,32 @@ def indexer():
                             word_freq = computeWordFrequencies(word_list)  
                             for key in word_freq:
                                 index[key][docID][1] += word_freq[key] 
-
+                    else:
+                        reject_count += 1
+                        reject_file.write("{} {}\n".format(reject_count, json_dict["url"]))     # CHECKING REJECTS
 
     lookup_file.close()
+    reject_file.close()     # CHECKING REJECTS
     
     index_list = sorted(index.items(), key=lambda x: (x[0]))                
-    print(f"{psutil.virtual_memory()[2]} percent of RAM used at END")
+#    print(f"{psutil.virtual_memory()[2]} percent of RAM used at END")
 
-    with open("WordIndex.txt", "w", encoding="utf-8") as index_file:
+    vocab_file = open("vocab.txt", "a", encoding="utf-8")                       # INDEX THE INDEX
+
+    with open("index.txt", "w", encoding="utf-8") as index_file:
         for elem in index_list:
+
+            vocab_file.write("{} {}\n".format(elem[0], index_file.tell()))      # INDEX THE INDEX write byte position before writing to original index
+
             index_file.write("{} ".format(elem[0])),
         
             for doc, count in elem[1].items():
                 index_file.write("{}.{}.{} ".format(doc, count[0], count[1])),
             
             index_file.write("\n")
+    
+    vocab_file.close()
+
 
 
 def tokenize_words(text: str) -> list:
@@ -93,8 +107,7 @@ def tokenize_words(text: str) -> list:
         if word.isalnum():
             alnum_list.append(word)
 
-    return alnum_list
-    
+    return alnum_list   
     
 
 
