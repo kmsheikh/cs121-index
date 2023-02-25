@@ -3,7 +3,8 @@ import json
 import zipfile
 from bs4 import BeautifulSoup
 import time
-import nltk
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
 from tokenizer import computeWordFrequencies
 from collections import defaultdict
 # create an inverted index for the corpus
@@ -24,6 +25,7 @@ from collections import defaultdict
 def indexer():
     # Iterate through the json files found in the zip file
     index = defaultdict(dict)
+    lookup_file = open("docID.txt", "a")
     
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
         files = zipped.namelist()
@@ -42,6 +44,8 @@ def indexer():
                     
                     if check_html:
                         docID += 1
+                        lookup_file.write("{} {}\n".format(docID, json_dict["url"]))
+
                         text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
                         # TASK: include seprate find_all for title, bold, strong. h1. etc
                         #       to add more weights on the document score
@@ -57,33 +61,42 @@ def indexer():
                                     index[key][docID] = word_freq[key]          # else initialize dict key
 
 
-
+            # time.sleep(1)
     
+    lookup_file.close()
+
     index_list = sorted(index.items(), key=lambda x: (x[0]))                
     
     with open("WordIndex.txt", "w") as index_file:
         for elem in index_list:
-            index_file.write("{} ->".format(elem[0])),
+            index_file.write("{}".format(elem[0])),
         
             for doc, count in elem[1].items():
-                index_file.write(" {}: ({}) ".format(doc, count)),
+                index_file.write(" {}.{}".format(doc, count)),
             
             index_file.write("\n")
 
 
-def tokenize_words(text):
+def tokenize_words(text: str) -> list:
     # Uses nltk to tokenize words and returns list of tuples of the words found in the doc and their frequencies in the doc
-    stemmer = nltk.stem.PorterStemmer()
-    words = nltk.tokenize.word_tokenize(text)
-    words = [stemmer.stem(word) for word in words]
-    alphanumeric_words = []
-    
-    for word in words:
+    port = PorterStemmer()
+    alnum_list = []
+    word_list = word_tokenize(text)
+
+    for word in word_list:
+        word = port.stem(word)
+
         if word.isalnum():
-            alphanumeric_words.append(word)
+            alnum_list.append(word)
+
+    #words = [stemmer.stem(word) for word in words]
+        
+    #for word in words:
+     #   if word.isalnum():
+      #      alphanumeric_words.append(word)
 
     #return computeWordFrequencies(alphanumeric_words)
-    return alphanumeric_words
+    return alnum_list
     
     
 
