@@ -46,7 +46,7 @@ def search_engine():
                 index_file.seek(vocab_dict[word])
                 found_list.append(index_file.readline())                # Append line found in index
     
-    if len(found_list) == 0:                                    # If nothing found, return
+    if len(found_list) < len(query_set) or len(found_list) == 0:        # If not all search terms found, return
         print("\tNo results found.\n")
         return
 
