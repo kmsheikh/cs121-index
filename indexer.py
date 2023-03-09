@@ -2,7 +2,7 @@ import os
 import json
 import zipfile
 from bs4 import BeautifulSoup
-import sys
+import math
 from tokenizer import tokenize_words
 from tokenizer import computeWordFrequencies
 from collections import defaultdict
@@ -74,7 +74,6 @@ def indexer():
                     elif docID > ZIP_DOC_NUM / 5:
                         pass
 
-
     lookup_file.close()
     
     index_list = sorted(index.items(), key=lambda x: (x[0]))                
@@ -96,7 +95,30 @@ def indexer():
     
     vocab_file.close()
 
+def update_indexes(files, doc_nums):
+    for letter in sorted(files.keys()):
+        partial_index = defaultdict(lambda: defaultdict())
+        files[letter].seek(0)
+        for line in files[letter]:
+            split_line = line.split()
+            for posting in split_line[1:]:
+                split_posting = posting.split(".")
+                tf = 1 + int(split_posting[1]) + (int(split_posting[2]) * 2)
+                df = len(split_line[1:])
+                tf_idf = (1 + math.log10(tf)) * math.log(doc_nums / df)
+                partial_index[split_line[0]][int(split_posting[0])] = tf_idf
+        
+        files[letter].seek(0)
+        files[letter].truncate(0)
+        for key, value in sorted(partial_index.items(), key = lambda x: x[0]):
+            files[letter].write(f"{key} ")
+            for doc, score in sorted(value.items(), key = lambda x: x[0]):
+                files[letter].write(f"{doc}/{score} ")
+            files[letter].write("\n")
 
 
 if __name__ == "__main__":
-    indexer()
+    #indexer()
+    partial = open("partial_test.txt", "r+")
+
+    update_indexes({"a": partial}, 20)
