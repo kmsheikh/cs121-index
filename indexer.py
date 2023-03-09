@@ -21,8 +21,23 @@ import sys
 
 # m1 -- use token frequency instead of tf-idf score
 
+# partial index + merge
+    # open all text files, organized alphabetically (a.txt b.txt... 9.txt)
+    # for each token in LOOP, immediately write to corresponding file
+    # after all documents searched, iterate through list of files:
+        # load a.txt into memory
+        # sort
+        # write to index.txt (complete index)
+        # close a.txt
+
 
 def indexer():
+    # create partial-index directory
+
+    # OPEN ALL FILES IN partial-index directory
+     
+    
+
     # Iterate through the json files found in the zip file
     index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     lookup_file = open("docID.txt", "a", encoding="utf-8")
@@ -48,8 +63,6 @@ def indexer():
                         docID += 1
                         lookup_file.write("{} {}\n".format(docID, json_dict["url"]))              # Append to docID lookup table
 
-#                        print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC {docID}. Size of DICT is {sys.getsizeof(index)}")
-                        
                         text = page_soup.find_all(["p", "pre", "li", "h4", "h5", "h6"])           # Get non-important words from html
                 
                         for chunk in text:
@@ -58,7 +71,7 @@ def indexer():
                             for key in word_freq:
                                 index[key][docID][0] += word_freq[key] 
 
-                        text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"])     # Get "important" words from html (replaces text for memory conservation)
+                        text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"])     # Get "important" words from html
                     
                         for chunk in text:
                             word_list = tokenize_words(chunk.get_text())
@@ -72,11 +85,9 @@ def indexer():
     lookup_file.close()
     reject_file.close()     # CHECKING REJECTS
     
-    index_list = sorted(index.items(), key=lambda x: (x[0]))                
-#    print(f"{psutil.virtual_memory()[2]} percent of RAM used at END")
+    index_list = sorted(index.items(), key=lambda x: (x[0]))                    # Sort the index (ENTIRELY IN MEMORY)
 
     vocab_file = open("vocab.txt", "a", encoding="utf-8")                       # INDEX THE INDEX
-
     with open("index.txt", "w", encoding="utf-8") as index_file:
         for elem in index_list:
 
