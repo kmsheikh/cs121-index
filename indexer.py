@@ -2,10 +2,9 @@ import os
 import json
 import zipfile
 from bs4 import BeautifulSoup
-import time
+import math
 from tokenizer import *
 from collections import defaultdict
-import psutil
 import sys
 import string
 
@@ -36,7 +35,6 @@ import string
 ZIP_DOC_NUM = 2000                  # Number of documents in Zip File
 
 def indexer():
-
     # create partial-index directory
     try:
         os.mkdir("partial-index")
@@ -57,6 +55,7 @@ def indexer():
     # Iterate through the json files found in the zip file
     index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     lookup_file = open("docID.txt", "a", encoding="utf-8")
+
     offload_dict = True
 
     with zipfile.ZipFile("analyst.zip", "r") as zipped:
@@ -110,7 +109,6 @@ def indexer():
                             index = offload(index, partial_dict)
                         elif docID > ZIP_DOC_NUM / 5:
                             index = offload(index, partial_dict)
-
     
     lookup_file.close()
     offload(index, partial_dict)                    # Last offload
@@ -154,10 +152,31 @@ def offload(my_dict, p_dict)->defaultdict:
             partial_file.write("{}.{}.{} ".format(doc, count[0], count[1])),
             
         partial_file.write("\n")
+    return defaultdict(lambda: defaultdict(lambda: [0, 0]))    
 
-    return defaultdict(lambda: defaultdict(lambda: [0, 0]))
-    
-
+def update_indexes(files, doc_nums):
+    for letter in sorted(files.keys()):
+        partial_index = defaultdict(lambda: defaultdict())
+        files[letter].seek(0)
+        for line in files[letter]:
+            split_line = line.split()
+            for posting in split_line[1:]:
+                split_posting = posting.split(".")
+                tf = 1 + int(split_posting[1]) + (int(split_posting[2]) * 2)
+                df = len(split_line[1:])
+                tf_idf = (1 + math.log10(tf)) * math.log(doc_nums / df)
+                partial_index[split_line[0]][int(split_posting[0])] = tf_idf
+        
+        files[letter].seek(0)
+        files[letter].truncate(0)
+        for key, value in sorted(partial_index.items(), key = lambda x: x[0]):
+            files[letter].write(f"{key} ")
+            for doc, score in sorted(value.items(), key = lambda x: x[0]):
+                files[letter].write(f"{doc}/{score} ")
+            files[letter].write("\n")    
 
 if __name__ == "__main__":
-    indexer()
+    #indexer()
+    partial = open("partial_test.txt", "r+")
+
+    update_indexes({"a": partial}, 20)
