@@ -4,6 +4,10 @@ import zipfile
 from bs4 import BeautifulSoup
 import time
 import tokenizer
+import sys
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
+from tokenizer import computeWordFrequencies
 from collections import defaultdict
 import psutil
 import sys
@@ -26,12 +30,10 @@ def indexer():
     # Iterate through the json files found in the zip file
     index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     lookup_file = open("docID.txt", "a", encoding="utf-8")
-    reject_file = open("reject.txt", "a", encoding="utf-8")     # CHECKING REJECTS
-
-    with zipfile.ZipFile("analyst.zip", "r") as zipped:
+    
+    with zipfile.ZipFile("developer.zip", "r") as zipped:
         files = zipped.namelist()
         docID = 0
-        reject_count = 0        # CHECKING REJECTS
 
         for name in files:
             extension = os.path.splitext(name)[-1]  
@@ -41,36 +43,32 @@ def indexer():
                     json_content = json_file.read()
                     json_dict = json.loads(json_content)
                     
-                    page_soup = BeautifulSoup(json_dict['content'], "html.parser")
-                    check_html = page_soup.find_all("html")
+                    page_soup = BeautifulSoup(json_dict['content'], "html.parser")   
+                    lookup_file.write("{} {}\n".format(docID, json_dict["url"]))              # Append to docID lookup table
+
+                    print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC # {docID}. Size of DICT is {sys.getsizeof(index)}")
                     
-                    if check_html:
+                    text = page_soup.find_all(["p", "pre", "li", "h4", "h5", "h6"])           # Get non-important words from html
+                    text_size = len(text)       # Get size of prior find_all call
+                    for chunk in text:
+                        word_list = tokenize_words(chunk.get_text())
+                        word_freq = computeWordFrequencies(word_list)       
+                        for key in word_freq:
+                            index[key][docID][0] += word_freq[key] 
+
+                    text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"])     # Get "important" words from html (replaces text for memory conservation)
+                    important_text_size = len(text) # Get size of prior find_all call
+                    for chunk in text:
+                        word_list = tokenize_words(chunk.get_text())
+                        word_freq = computeWordFrequencies(word_list)  
+                        for key in word_freq:
+                            index[key][docID][1] += word_freq[key] 
+                    
+                    if text_size + important_text_size > 0: # Check if indexer extracted some text from the tags we require. If not it is essentially ignored.
                         docID += 1
-                        lookup_file.write("{} {}\n".format(docID, json_dict["url"]))              # Append to docID lookup table
 
-#                        print(f"{psutil.virtual_memory()[2]} percent of RAM used at DOC {docID}. Size of DICT is {sys.getsizeof(index)}")
-                        
-                        text = page_soup.find_all(["p", "pre", "li", "h4", "h5", "h6"])           # Get non-important words from html
-                
-                        for chunk in text:
-                            word_list = tokenize_words(chunk.get_text())
-                            word_freq = computeWordFrequencies(word_list)       
-                            for key in word_freq:
-                                index[key][docID][0] += word_freq[key] 
-
-                        text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"])     # Get "important" words from html (replaces text for memory conservation)
-                    
-                        for chunk in text:
-                            word_list = tokenize_words(chunk.get_text())
-                            word_freq = computeWordFrequencies(word_list)  
-                            for key in word_freq:
-                                index[key][docID][1] += word_freq[key] 
-                    else:
-                        reject_count += 1
-                        reject_file.write("{} {}\n".format(reject_count, json_dict["url"]))     # CHECKING REJECTS
 
     lookup_file.close()
-    reject_file.close()     # CHECKING REJECTS
     
     index_list = sorted(index.items(), key=lambda x: (x[0]))                
 #    print(f"{psutil.virtual_memory()[2]} percent of RAM used at END")
