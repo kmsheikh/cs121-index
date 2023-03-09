@@ -32,6 +32,7 @@ import string
         # write to index.txt (complete index)
         # close a.txt
 
+
 ZIP_DOC_NUM = 2000                  # Number of documents in Zip File
 
 def indexer():
@@ -51,8 +52,7 @@ def indexer():
     for i in index_range:
         path = "partial-index/" + i + ".txt"
         partial_file = open(path, "x", encoding="utf-8") 
-        partial_dict[i] = partial_file                          # Match file to letter/digit
-    
+        partial_dict[i] = partial_file                          # Match file to letter/digit 
 
     # Iterate through the json files found in the zip file
     index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
@@ -115,30 +115,24 @@ def indexer():
     lookup_file.close()
     offload(index, partial_dict)                    # Last offload
 
-
     #index_list = sorted(index.items(), key=lambda x: (x[0]))                    # Sort the index (ENTIRELY IN MEMORY)
-
     #vocab_file = open("vocab.txt", "a", encoding="utf-8")                       # INDEX THE INDEX
-    #with open("index.txt", "w", encoding="utf-8") as index_file:
-     #   for elem in index_list:
-
-     #       vocab_file.write("{} {}\n".format(elem[0], index_file.tell()))      # INDEX THE INDEX write byte position before writing to original index
-
-      #      index_file.write("{} ".format(elem[0])),
-        
-     #       for doc, count in elem[1].items():
-     #         index_file.write("{}.{}.{} ".format(doc, count[0], count[1])),
-        
-     #       index_file.write("\n")
     
-   # vocab_file.close()
-
-
+    #with open("index.txt", "w", encoding="utf-8") as index_file:
+    #   for elem in index_list:
+    #      vocab_file.write("{} {}\n".format(elem[0], index_file.tell()))      # INDEX THE INDEX write byte position before writing to original index
+    #      index_file.write("{} ".format(elem[0])),
+     
+    #      for doc, count in elem[1].items():
+    #         index_file.write("{}.{}.{} ".format(doc, count[0], count[1])),
+        
+    #       index_file.write("\n")
+    
+    #vocab_file.close()
 
     # Close all open partial indexes
     for key in partial_dict.keys():
         partial_dict[key].close()
-
 
 
 
@@ -163,7 +157,6 @@ def offload(my_dict, p_dict)->defaultdict:
 
     return defaultdict(lambda: defaultdict(lambda: [0, 0]))
     
-
 
 
 if __name__ == "__main__":

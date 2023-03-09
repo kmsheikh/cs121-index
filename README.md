@@ -17,8 +17,7 @@ Programming skills required: advanced.
 
 ### Main challenges
 
-Design efficient data structures, devise efficient file access, balance memory us-
-age and response time.
+Design efficient data structures, devise efficient file access, balance memory usage and response time.
 
 ### Corpus
 
