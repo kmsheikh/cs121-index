@@ -2,10 +2,9 @@ import os
 import json
 import zipfile
 from bs4 import BeautifulSoup
-import time
+import math
 from tokenizer import *
 from collections import defaultdict
-import psutil
 import sys
 import string
 
@@ -33,10 +32,9 @@ import string
         # close a.txt
 
 
-ZIP_DOC_NUM = 2000                  # Number of documents in Zip File
+ZIP_DOC_NUM = 56000                  # Number of documents in Zip File
 
 def indexer():
-
     # create partial-index directory
     try:
         os.mkdir("partial-index")
@@ -51,15 +49,16 @@ def indexer():
 
     for i in index_range:
         path = "partial-index/" + i + ".txt"
-        partial_file = open(path, "x", encoding="utf-8") 
+        partial_file = open(path, "w+", encoding="utf-8") 
         partial_dict[i] = partial_file                          # Match file to letter/digit 
 
     # Iterate through the json files found in the zip file
     index = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     lookup_file = open("docID.txt", "a", encoding="utf-8")
+
     offload_dict = True
 
-    with zipfile.ZipFile("analyst.zip", "r") as zipped:
+    with zipfile.ZipFile("developer.zip", "r") as zipped:
         files = zipped.namelist()
         docID = 0
 
@@ -110,26 +109,11 @@ def indexer():
                             index = offload(index, partial_dict)
                         elif docID > ZIP_DOC_NUM / 5:
                             index = offload(index, partial_dict)
-
     
     lookup_file.close()
     offload(index, partial_dict)                    # Last offload
-
-    #index_list = sorted(index.items(), key=lambda x: (x[0]))                    # Sort the index (ENTIRELY IN MEMORY)
-    #vocab_file = open("vocab.txt", "a", encoding="utf-8")                       # INDEX THE INDEX
+    update_indexes(partial_dict, docID) 
     
-    #with open("index.txt", "w", encoding="utf-8") as index_file:
-    #   for elem in index_list:
-    #      vocab_file.write("{} {}\n".format(elem[0], index_file.tell()))      # INDEX THE INDEX write byte position before writing to original index
-    #      index_file.write("{} ".format(elem[0])),
-     
-    #      for doc, count in elem[1].items():
-    #         index_file.write("{}.{}.{} ".format(doc, count[0], count[1])),
-        
-    #       index_file.write("\n")
-    
-    #vocab_file.close()
-
     # Close all open partial indexes
     for key in partial_dict.keys():
         partial_dict[key].close()
@@ -154,9 +138,37 @@ def offload(my_dict, p_dict)->defaultdict:
             partial_file.write("{}.{}.{} ".format(doc, count[0], count[1])),
             
         partial_file.write("\n")
+    return defaultdict(lambda: defaultdict(lambda: [0, 0]))    
 
-    return defaultdict(lambda: defaultdict(lambda: [0, 0]))
-    
+
+
+def update_indexes(files, doc_nums):
+    vocab_file = open("vocab.txt", "a", encoding="utf-8")                       # INDEX THE INDEX
+
+    for letter in sorted(files.keys()):
+        partial_index = defaultdict(lambda: defaultdict())
+        files[letter].seek(0)
+        for line in files[letter]:
+            split_line = line.split()
+            for posting in split_line[1:]:
+                split_posting = posting.split(".")
+                tf = 1 + int(split_posting[1]) + (int(split_posting[2]) * 2)
+                df = len(split_line[1:])
+                tf_idf = (1 + math.log10(tf)) * math.log(doc_nums / df)
+                partial_index[split_line[0]][int(split_posting[0])] = tf_idf
+        
+        files[letter].seek(0)
+        files[letter].truncate(0)
+        for key, value in sorted(partial_index.items(), key = lambda x: x[0]):
+            vocab_file.write("{} {}\n".format(key, files[letter].tell()))      # INDEX THE INDEX write byte position before writing to original index
+
+            files[letter].write(f"{key} ")
+            for doc, score in sorted(value.items(), key = lambda x: x[0]):
+                files[letter].write(f"{doc}/{score} ")
+            files[letter].write("\n")
+
+    vocab_file.close()
+
 
 
 if __name__ == "__main__":
