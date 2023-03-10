@@ -63,7 +63,7 @@ def search_engine():
             num = 10                                                # Sort and print top 10 or less results
 
         for x in range(num):
-            doc = ranked_postings[x][0]
+            doc = int(ranked_postings[x][0])
             print("\n\t{}\t{}\n".format(x+1, lookup_dict[doc]))
 
         end = time.time()
@@ -108,7 +108,8 @@ def get_matches(posting_lists: list) -> list:
     Recursively finds postings with common docIds in a list of lists of postings
     """
     if len(posting_lists) == 1:  # If the posting_lists only has one list of postings, the only matches would be itself
-        return sorted(posting_lists[0], key = lambda x: -x[1]) # return a ranked version of the list of postings
+        print(posting_lists)
+        return sorted(posting_lists[0], key = lambda x: -float(x[1])) # return a ranked version of the list of postings
     else:
         posting_lists = sorted(posting_lists, key = len) # sort posting list in increasing order of length to gather the first two smallest amount of postings
         min1 = posting_lists.pop(0)
