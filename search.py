@@ -1,21 +1,16 @@
 # QUERY PROCESSING
-
-# Using vocab.txt for byte positions, 
-# seek the lines in index to solve query
-
-
-# TO DO:
-#       Implment ranking, calculate tf-idf with document weights
-#       Offer continuous input for user?
+    # Signal hander installed to quit with crtl+c
 
 
 from tokenizer import *
+import time
 import glob
 from ntpath import basename
 import sys
 import asyncio
 import signal
-import time
+from functools import partial
+
 
 def search_engine():
  
@@ -34,15 +29,7 @@ def search_engine():
         for line in lookup_file:
             (ID, doc) = line.split()
             lookup_dict[int(ID)] = doc
-
     
-    # OPEN INDEX FILES, save opened files in dict for closing later
-    index_dict = {}
-    index_files = glob.glob("patial-index/*") 
-    for file in index_files:
-        txt = basename(file)                                            # Retrieve tail of path "a.txt" with basename
-        index_dict[txt[0]] = open(file, "r", encoding="utf=8")
-
     
     # INTRO TEXT
     # explain what to search
@@ -55,31 +42,9 @@ def search_engine():
         start = time.time()                                         # TIME SEARCH RESULTS        
         doc_list = answer_query(query)
 
-    
-    doc_list = []                                               # LIST OF LIST OF DOCIDS 
-    for stats_list in parsed_list:
-        docs = []
+     
+
         
-        for stat in stats_list:
-            docID = stat.split(".")[0]                                  # Split posting by ".", only return elem[0] DOCID
-            docs.append(docID)
-
-        doc_list.append(docs)
-
-
-    doc_answers = []                                            # LIST OF DOCS FOR QUERY
-    smallest_list = min(doc_list, key=len)                              # Find smallest list in doc_list to compare with others
-
-    for docID in smallest_list:
-        the_flag = True                                                 # Set flag to searh each element
-
-        for docs in doc_list:
-            if docID not in docs:
-                the_flag = False                                        # If not found in ANY other list, set flag to false
-
-        if the_flag:
-            doc_answers.append(int(docID))                                   # If true, docID is an answer for query
-    
 
     if len(doc_answers) == 0:                                   # If no answers, return
         print("\tNo results found.\n")
@@ -93,12 +58,7 @@ def search_engine():
         end = time.time()
         elapsed_time = end - start
         print("\t{} results found in {} seconds.\n".format(count, elapsed_time))
-    
-
-    # CLOSE ALL OPEN INDEXES
-    for key in index_dict.keys():
-        index_dict[key].close()
-
+     
 
 def answer_query(the_query: str)->list:
     query_list = tokenize_words(the_query)
@@ -118,24 +78,59 @@ def answer_query(the_query: str)->list:
         return []
 
     # PARSE POSTING ENTRY, remove tokens
-    doc_list = []                                                
+    parsed_list = []                                                
     for found in found_list:    
         entry_list = found.split()                                  # Split entry by whitespace: [word  1/0.0  2/0.0] 
-        entry_list.pop(0)                                           # Remove token from parsed entry_list
-        doc_list.append(entry)                                      # Append [1/0.0 2/0.0] to doc_list
+        entry_list.pop(0)                                           # Remove token from entry_list
+        parsed_list.append(entry)                                   # Append [1/0.0 2/0.0] to parsed_list
+
+    # CREATE LIST(token) OF LIST(posting) OF LIST(docID, score)
+    doc_list = [] 
+    for score_list in parsed_list:
+        docs = []
+        for score in score_list:
+            split = stat.split("/")                                 # Split posting by "/" for docID, score
+            docs.append(split)
+        
+        doc_list.append(docs)
+
+    # SORT DOCS THAT ARE PRESENT FOR ALL TOKENS
+    answer_list = []
+    smallest_list = min(doc_list, key=len)                          # Find smallest list in doc_list to compare with others
+
+    for small_post in smallest_list:
+        the_flag = True                                             # Set flag to searh each element
+
+        for postings in doc_list:
+            for doc in postings:
+                if small_post[0] not in doc:                        # If elem[0] docID not found in other postings, flag is false
+                    the_flag = False
+
+        if the_flag:
+            doc_answers.append(int(docID))                                   # If true, docID is an answer for query
 
 
 
 
-
-
-async def sigint_handler(signum, frame):
+async def sigint_handler(g_index_dict, signum, frame):
     print("\n\tExiting...\n")
+    
+    # CLOSE ALL OPEN INDEXES
+    for key in g_index_dict.keys():
+        g_index_dict[key].close()
+
     sys.exit(0)
 
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, sigint_handler)                # Instal signal handler for crtl+C
+    # OPEN INDEX FILES, save opened files in dict for closing later
+    g_index_dict = {}
+    index_files = glob.glob("patial-index/*") 
+    for file in index_files:
+        txt = basename(file)                                                # Retrieve tail of path "a.txt" with basename
+        g_index_dict[txt[0]] = open(file, "r", encoding="utf=8")
 
+    signal.signal(signal.SIGINT, partial(sigint_handler, g_index_dict)      # Install signal handler for crtl+C
+    
     search_engine()
