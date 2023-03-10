@@ -11,11 +11,14 @@
 
 from tokenizer import *
 import glob
-from ntpath import basename
 import sys
-import asyncio
 import signal
 import time
+import glob
+import ntpath
+import sys
+import signal
+from functools import partial
 
 def search_engine():
  
@@ -54,6 +57,28 @@ def search_engine():
         query = input("Enter your query:\n\t")
         start = time.time()                                         # TIME SEARCH RESULTS        
         postings_lists = gather_postings(query, vocab_dict, index_dict, stop_list)
+        if not postings_lists:                                      # empty list, no postings found
+            print("\n\tNo results found.\n")
+            continue
+
+        ranked_postings = get_matches(postings_lists)
+        if not ranked_postings:
+            print("\n\tNo results found.\n")
+            continue
+
+        if len(ranked_postings) < 10:
+            num = len(ranked_postings)
+        else:
+            num = 10                                                # Sort and print top 10 or less results
+
+        for x in range(num):
+            doc = ranked_postings[x][0]
+            print("\n\t{}\t{}\n".format(x+1, lookup_dict[doc]))
+
+        end = time.time()
+        time_elapsed = end - start
+
+        print("\n\tResults found in {} seconds.\n".format(time_elapsed))
 
  
 
@@ -79,6 +104,8 @@ def gather_postings(the_query: str, vocab_dict: dict, index_dict: dict, stop_lis
     for found in found_list:    
         entry_list = found.split()                                  # Split entry by whitespace: [word  1/0.0  2/0.0] 
         entry_list.pop(0)                                           # Remove token from parsed entry_list
+        for i in range(len(entry_list)):
+            entry_list[i] = entry_list[i].split("/")                # Split each posting to index proper elements
         postings_lists.append(entry_list)                                      # Append [1/0.0 2/0.0] to postings_list
 
     return postings_lists
@@ -92,15 +119,66 @@ def extract_postings(vocab_dict: dict, query_set: set, index_dict: dict) -> list
 
     return postings
 
+def get_matches(posting_lists: list) -> list:
+    """
+    Recursively finds postings with common docIds in a list of lists of postings
+    """
+    if len(posting_lists) == 1:  # If the posting_lists only has one list of postings, the only matches would be itself
+        return sorted(posting_lists[0], key = lambda x: -x[1]) # return a ranked version of the list of postings
+    else:
+        posting_lists = sorted(posting_lists, key = len) # sort posting list in increasing order of length to gather the first two smallest amount of postings
+        min1 = posting_lists.pop(0)
+        if (len(min1) == 0):        # if length of the first minimum posting list is 0, then that means two lists didnt have a common docID posting, so reject it (since we're using AND retrieval)
+            return []
 
+        min2 = posting_lists.pop(0)
+        and_merged = and_merge(min1, min2)
+        posting_lists.append(and_merged)
+        return get_matches(posting_lists)
+        
 
-async def sigint_handler(signum, frame):
+def and_merge(posting1: list, posting2: list) -> list:
+    """
+    "Merges" two postings together by returning postings with common docIDs
+    """
+    pointer1 = 0
+    pointer2 = 0
+    new_posting_list = []
+    while pointer1 != len(posting1) and pointer2 != len(posting2):  # Simultaneously iterates through postings by having pointers for each list
+        if int(posting1[pointer1][0]) > int(posting2[pointer2][0]):     # If posting in posting1 is greater than posting in  posting2, iterate through posting2.
+            pointer2 += 1                                                    # Since postings are ordered by increasing docId nums, iterating through posting2 may eventually reach docId
+                                                                                    # from posting in posting1 or a higher docId num
+        
+        elif int(posting1[pointer1][0]) < int(posting2[pointer2][0]):   # Prior logic applies vice versa if posting in posting2 greater than posting in posting1
+            pointer1 += 1
+
+        else:
+            docID = int(posting1[pointer1][0])      # If equal, add tf-idf scores together, add new posting to posting list, and iterate both lists
+            score = float(posting1[pointer1][1]) + float(posting2[pointer2][1])
+            new_posting_list.append([docID, score])
+            pointer1 += 1
+            pointer2 += 1
+    
+    return new_posting_list
+
+def sigint_handler(g_index_dict, signum, frame):
     print("\n\tExiting...\n")
+    
+    # CLOSE ALL OPEN INDEXES
+    for key in g_index_dict.keys():
+        g_index_dict[key].close()
+
     sys.exit(0)
 
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, sigint_handler)                # Instal signal handler for crtl+C
+    g_index_dict = {}
+    index_files = glob.glob("partial-index/*") 
+    for file in index_files:
+        txt = ntpath.basename(file)                                         # Retrieve tail of path "a.txt" with basename
+        g_index_dict[txt[0]] = open(file, "r", encoding="utf=8")
 
+    signal.signal(signal.SIGINT, partial(sigint_handler, g_index_dict))     # Install signal handler for crtl+C
+    
     search_engine()
