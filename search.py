@@ -70,7 +70,7 @@ def gather_postings(the_query: str, vocab_dict: dict, index_dict: dict, stop_lis
             query_set.add(word)                                     # Lose duplicates and stop words in query
 
     # GET WORD and POSTINGS FROM THE INDEX
-    found_list = gather_postings(vocab_dict, query_list, index_dict)      # Append line found in partial_index
+    found_list = extract_postings(vocab_dict, query_list, index_dict)      
     if len(found_list) < len(query_set) or len(found_list) == 0:    # If not all search terms found, return empty list
         return []
 
@@ -83,12 +83,12 @@ def gather_postings(the_query: str, vocab_dict: dict, index_dict: dict, stop_lis
 
     return postings_lists
 
-def gather_postings(vocab_dict: dict, query_set: set, index_dict: dict) -> list:
+def extract_postings(vocab_dict: dict, query_set: set, index_dict: dict) -> list:
     postings = []
     for word in query_set:
         if word in vocab_dict:
             index_dict[word[0]].seek(vocab_dict[word])  
-            postings.append(index_dict[word[0]].readline())  
+            postings.append(index_dict[word[0]].readline())   # Append line found in partial_index
 
     return postings
 
