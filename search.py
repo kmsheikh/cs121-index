@@ -1,12 +1,11 @@
 # QUERY PROCESSING
-
-# Using vocab.txt for byte positions, 
-# seek the lines in index to solve query
-
+    # Signal hander installed to quit with crtl+c
+    # Using vocab.txt for byte positions, 
+    # Seek() the lines in index to solve query
 
 # TO DO:
-#       Implment ranking, calculate tf-idf with document weights
-#       Offer continuous input for user?
+    # Implment ranking, calculate tf-idf with document weights
+    # Prompt user, search interface
 
 
 from tokenizer import *
@@ -16,9 +15,15 @@ import sys
 import asyncio
 import signal
 import time
+import glob
+from ntpath import basename
+import sys
+import asyncio
+import signal
+from functools import partial
+
 
 def search_engine():
- 
     # LOADING AUXILARY FILES INTO MEMORY
     vocab_dict = dict()
     with open("vocab.txt", "r", encoding="utf-8") as vocab_file:        # vocab_dict stores token byte_position
@@ -34,15 +39,6 @@ def search_engine():
         for line in lookup_file:
             (ID, doc) = line.split()
             lookup_dict[int(ID)] = doc
-
-    
-    # OPEN INDEX FILES, save opened files in dict for closing later
-    index_dict = {}
-    index_files = glob.glob("patial-index/*") 
-    for file in index_files:
-        txt = basename(file)                                            # Retrieve tail of path "a.txt" with basename
-        index_dict[txt[0]] = open(file, "r", encoding="utf=8")
-
     
     # INTRO TEXT
     # explain what to search
@@ -52,14 +48,9 @@ def search_engine():
     # GET KEYBOARD INPUT
     while(1):
         query = input("Enter your query:\n\t")
-        start = time.time()                                         # TIME SEARCH RESULTS        
+        start = time.time()                                         # TIME SEARCH RESULTS       
         postings_lists = gather_postings(query, vocab_dict, index_dict, stop_list)
-
- 
-
-    # CLOSE ALL OPEN INDEXES
-    for key in index_dict.keys():
-        index_dict[key].close()
+        
 
 
 def gather_postings(the_query: str, vocab_dict: dict, index_dict: dict, stop_list: list)->list:
@@ -83,6 +74,7 @@ def gather_postings(the_query: str, vocab_dict: dict, index_dict: dict, stop_lis
 
     return postings_lists
 
+
 def extract_postings(vocab_dict: dict, query_set: set, index_dict: dict) -> list:
     postings = []
     for word in query_set:
@@ -94,13 +86,25 @@ def extract_postings(vocab_dict: dict, query_set: set, index_dict: dict) -> list
 
 
 
-async def sigint_handler(signum, frame):
+async def sigint_handler(g_index_dict, signum, frame):
     print("\n\tExiting...\n")
+    
+    # CLOSE ALL OPEN INDEXES
+    for key in g_index_dict.keys():
+        g_index_dict[key].close()
+
     sys.exit(0)
 
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, sigint_handler)                # Instal signal handler for crtl+C
+    # OPEN INDEX FILES, save opened files in dict for closing later
+    g_index_dict = {}
+    index_files = glob.glob("patial-index/*") 
+    for file in index_files:
+        txt = basename(file)                                                # Retrieve tail of path "a.txt" with basename
+        g_index_dict[txt[0]] = open(file, "r", encoding="utf=8")
 
+    signal.signal(signal.SIGINT, partial(sigint_handler, g_index_dict)      # Install signal handler for crtl+C
+    
     search_engine()
