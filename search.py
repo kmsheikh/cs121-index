@@ -81,7 +81,7 @@ def gather_postings(the_query: str, vocab_dict: dict, index_dict: dict, stop_lis
         entry_list.pop(0)                                           # Remove token from parsed entry_list
         postings_lists.append(entry_list)                                      # Append [1/0.0 2/0.0] to postings_list
 
-    return postings_lists
+    return [postings_lists]
 
 def gather_postings(vocab_dict: dict, query_set: set, index_dict: dict) -> list:
     postings = []
