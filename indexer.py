@@ -93,9 +93,10 @@ def indexer():
                         for key in word_freq:
                             index[key][docID][0] += word_freq[key]
 
-                    if text_size + important_text_size > 0:                                     # Check if indexer extracted text from tags
-                        docID += 1                                                              # If not, ignore
+                    if text_size + important_text_size > 0:                                     # Check if indexer extracted text from tags. If not, ignore.
                         lookup_file.write("{} {}\n".format(docID, json_dict["url"]))            # Append to docID lookup table
+                        docID += 1                                                              
+                        
 
                     
                     # Offload the dictionary index in each of these branches

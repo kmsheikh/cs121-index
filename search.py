@@ -36,17 +36,8 @@ def search_engine():
     with open("docID.txt", "r", encoding="utf-8") as lookup_file:       # lookup_dict stores docID website
         for line in lookup_file:
             (ID, doc) = line.split()
-            lookup_dict[int(ID)] = doc
+            lookup_dict[int(ID) - 1] = doc
 
-    
-    # OPEN INDEX FILES, save opened files in dict for closing later
-    index_dict = {}
-    index_files = glob.glob("patial-index/*") 
-    for file in index_files:
-        txt = basename(file)                                            # Retrieve tail of path "a.txt" with basename
-        index_dict[txt[0]] = open(file, "r", encoding="utf=8")
-
-    
     # INTRO TEXT
     # explain what to search
     # how to quit (after every timestamp?)
@@ -56,7 +47,7 @@ def search_engine():
     while(1):
         query = input("Enter your query:\n\t")
         start = time.time()                                         # TIME SEARCH RESULTS        
-        postings_lists = gather_postings(query, vocab_dict, index_dict, stop_list)
+        postings_lists = gather_postings(query, vocab_dict, g_index_dict, stop_list)
         if not postings_lists:                                      # empty list, no postings found
             print("\n\tNo results found.\n")
             continue
@@ -79,13 +70,6 @@ def search_engine():
         time_elapsed = end - start
 
         print("\n\tResults found in {} seconds.\n".format(time_elapsed))
-
- 
-
-    # CLOSE ALL OPEN INDEXES
-    for key in index_dict.keys():
-        index_dict[key].close()
-
 
 def gather_postings(the_query: str, vocab_dict: dict, index_dict: dict, stop_list: list)->list:
     query_list = tokenize_words(the_query)
