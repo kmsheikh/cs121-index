@@ -1,8 +1,19 @@
 # QUERY PROCESSING
     # Signal hander installed to quit with crtl+c
+    # Using vocab.txt for byte positions, 
+    # Seek() the lines in index to solve query
+
+# TO DO:
+    # Implment ranking, calculate tf-idf with document weights
+    # Prompt user, search interface
 
 
 from tokenizer import *
+import glob
+from ntpath import basename
+import sys
+import asyncio
+import signal
 import time
 import glob
 from ntpath import basename
@@ -13,7 +24,6 @@ from functools import partial
 
 
 def search_engine():
- 
     # LOADING AUXILARY FILES INTO MEMORY
     vocab_dict = dict()
     with open("vocab.txt", "r", encoding="utf-8") as vocab_file:        # vocab_dict stores token byte_position
@@ -22,14 +32,13 @@ def search_engine():
             vocab_dict[word] = int(byte)
     
     with open("stopwords.txt", "r") as stop_file:                       # Stop words for filtering queries
-        stop_list = stop_file.read()
+        stop_list = stop_file.read().split()
     
     lookup_dict = dict()
     with open("docID.txt", "r", encoding="utf-8") as lookup_file:       # lookup_dict stores docID website
         for line in lookup_file:
             (ID, doc) = line.split()
             lookup_dict[int(ID)] = doc
-    
     
     # INTRO TEXT
     # explain what to search
@@ -39,28 +48,12 @@ def search_engine():
     # GET KEYBOARD INPUT
     while(1):
         query = input("Enter your query:\n\t")
-        start = time.time()                                         # TIME SEARCH RESULTS        
-        doc_list = answer_query(query)
-
-     
-
+        start = time.time()                                         # TIME SEARCH RESULTS       
+        postings_lists = gather_postings(query, vocab_dict, index_dict, stop_list)
         
 
-    if len(doc_answers) == 0:                                   # If no answers, return
-        print("\tNo results found.\n")
-            
-        count = 0
-    
-        for answer in doc_answers:
-            count += 1
-            print("{}:\t {}\n".format(count, lookup_dict[answer]))
-    
-        end = time.time()
-        elapsed_time = end - start
-        print("\t{} results found in {} seconds.\n".format(count, elapsed_time))
-     
 
-def answer_query(the_query: str)->list:
+def gather_postings(the_query: str, vocab_dict: dict, index_dict: dict, stop_list: list)->list:
     query_list = tokenize_words(the_query)
     query_set = set()
     for word in query_list:
@@ -68,47 +61,28 @@ def answer_query(the_query: str)->list:
             query_set.add(word)                                     # Lose duplicates and stop words in query
 
     # GET WORD and POSTINGS FROM THE INDEX
-    found_list = [] 
-    for word in query_set:
-        if word in vocab_dict:
-            index_dict[word[0]].seek(vocab_dict[word])  
-            found_list.append(index_dict[word[0]].readline())       # Append line found in partial_index
-
+    found_list = extract_postings(vocab_dict, query_list, index_dict)      
     if len(found_list) < len(query_set) or len(found_list) == 0:    # If not all search terms found, return empty list
         return []
 
     # PARSE POSTING ENTRY, remove tokens
-    parsed_list = []                                                
+    postings_lists = []                                                
     for found in found_list:    
         entry_list = found.split()                                  # Split entry by whitespace: [word  1/0.0  2/0.0] 
-        entry_list.pop(0)                                           # Remove token from entry_list
-        parsed_list.append(entry)                                   # Append [1/0.0 2/0.0] to parsed_list
+        entry_list.pop(0)                                           # Remove token from parsed entry_list
+        postings_lists.append(entry_list)                                      # Append [1/0.0 2/0.0] to postings_list
 
-    # CREATE LIST(token) OF LIST(posting) OF LIST(docID, score)
-    doc_list = [] 
-    for score_list in parsed_list:
-        docs = []
-        for score in score_list:
-            split = stat.split("/")                                 # Split posting by "/" for docID, score
-            docs.append(split)
-        
-        doc_list.append(docs)
+    return postings_lists
 
-    # SORT DOCS THAT ARE PRESENT FOR ALL TOKENS
-    answer_list = []
-    smallest_list = min(doc_list, key=len)                          # Find smallest list in doc_list to compare with others
 
-    for small_post in smallest_list:
-        the_flag = True                                             # Set flag to searh each element
+def extract_postings(vocab_dict: dict, query_set: set, index_dict: dict) -> list:
+    postings = []
+    for word in query_set:
+        if word in vocab_dict:
+            index_dict[word[0]].seek(vocab_dict[word])  
+            postings.append(index_dict[word[0]].readline())   # Append line found in partial_index
 
-        for postings in doc_list:
-            for doc in postings:
-                if small_post[0] not in doc:                        # If elem[0] docID not found in other postings, flag is false
-                    the_flag = False
-
-        if the_flag:
-            doc_answers.append(int(docID))                                   # If true, docID is an answer for query
-
+    return postings
 
 
 
