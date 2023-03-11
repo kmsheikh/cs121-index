@@ -40,23 +40,24 @@ def search_engine():
             lookup_dict[int(ID)] = doc
     
     # INTRO TEXT
-    # explain what to search
-    # how to quit (after every timestamp?)
+    print("\tTo quit, enter ctrl+c.\n")
 
 
     # GET KEYBOARD INPUT
     while(1):
-        query = input("Enter your query:\n\t")
+        query = input("Enter your query:\t")
         start = time.time()                                         # TIME SEARCH RESULTS
 
         postings_lists = gather_postings(query, vocab_dict, g_index_dict, stop_list)
         if not postings_lists:                                      # empty list, no postings found
-            print("\n\tNo results found.\n")
+            print("\n\tNo results found.")
+            print("\tTo quit, enter ctrl+c.\n")
             continue
         
         score_dict = boolean_retrieval(postings_lists)   
         if not score_dict:
-            print("\n\tNo results found.\n")
+            print("\n\tNo results found.")
+            print("\tTo quit, enter ctrl+c.\n")
             continue
     
         ranked_list = sorted(score_dict.items(), key=lambda x: (x[1]), reverse=True)
@@ -74,7 +75,8 @@ def search_engine():
         end = time.time()
         time_elapsed = end - start
 
-        print("\n\tResults found in {} seconds.\n".format(time_elapsed))
+        print("\n\tResults found in {} seconds.".format(time_elapsed))
+        print("\tTo quit, enter ctrl+c.\n")
 
 
 
@@ -141,7 +143,7 @@ def extract_postings(vocab_dict: dict, query_set: set, g_index_dict: dict) -> li
 
 
 def sigint_handler(g_index_dict, signum, frame):
-    print("\n\tExiting...\n")
+    print("\n\n\tExiting...\n")
     
     # CLOSE ALL OPEN INDEXES
     for key in g_index_dict.keys():
@@ -152,6 +154,8 @@ def sigint_handler(g_index_dict, signum, frame):
 
 
 if __name__ == "__main__":
+    print("\n\tStarting up search engine...")
+
     # OPEN INDEX FILES, save opened files in dict for closing later
     g_index_dict = {}
     index_files = glob.glob("partial-index/*") 

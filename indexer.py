@@ -60,7 +60,7 @@ def indexer():
 
     with zipfile.ZipFile("developer.zip", "r") as zipped:
         files = zipped.namelist()
-        docID = 0
+        docID = 1
 
         for name in files:
             extension = os.path.splitext(name)[-1]  
@@ -80,23 +80,25 @@ def indexer():
                         for key in word_freq:
                             index[key][docID][1] += word_freq[key] 
 
+                    text = page_soup.find_all(["p"])                                            # Get "less-important" words from html
+                    less_text_size = len(text)     
+                    for chunk in text:
+                        word_list = tokenize_words(chunk.get_text())
+                        word_freq = computeWordFrequencies(word_list)       
+                        for key in word_freq:
+                            index[key][docID][0] += word_freq[key] 
+                        
 
-                    unwanted_tags = ["title", "h1", "h2", "h3", "b", "strong"]
+                    unwanted_tags = ["title", "h1", "h2", "h3", "b", "strong", "p"]
                     for tag in unwanted_tags:
                         [s.extract() for s in page_soup(tag)]
 
                     text = page_soup.find_all()                                                 # Get "non-important" words from html
                     text_size = len(text)
-                    for chunk in text:
-                        word_list = tokenize_words(chunk.get_text())
-                        word_freq = computeWordFrequencies(word_list)       
-                        for key in word_freq:
-                            index[key][docID][0] += word_freq[key]
 
-                    if text_size + important_text_size > 0:                                     # Check if indexer extracted text from tags
+                    if text_size + less_text_size + important_text_size > 0:                    # Check if indexer extracted text from tags
+                        lookup_file.write("{} {}\n".format(docID, json_dict["url"]))            # Append to docID lookup table 
                         docID += 1                                                              # If not, ignore
-                        lookup_file.write("{} {}\n".format(docID, json_dict["url"]))            # Append to docID lookup table
-
                     
                     # Offload the dictionary index in each of these branches
                     if offload_dict == True:
@@ -112,7 +114,8 @@ def indexer():
     
     lookup_file.close()
     offload(index, partial_dict)                    # Last offload
-    update_indexes(partial_dict, docID) 
+    docID -= 1
+    update_indexes(partial_dict, docID)             # Total doc number was +1
     
     # Close all open partial indexes
     for key in partial_dict.keys():
