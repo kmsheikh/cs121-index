@@ -58,9 +58,9 @@ def indexer():
 
     offload_dict = True
 
-    with zipfile.ZipFile("developer.zip", "r") as zipped:
+    with zipfile.ZipFile("test.zip", "r") as zipped:
         files = zipped.namelist()
-        docID = 0
+        docID = 1
 
         for name in files:
             extension = os.path.splitext(name)[-1]  
@@ -74,6 +74,7 @@ def indexer():
                     
                     text = page_soup.find_all(["title", "h1", "h2", "h3", "b", "strong"])       # Get "important" words from html
                     important_text_size = len(text)     
+ 
                     for chunk in text:
                         word_list = tokenize_words(chunk.get_text())
                         word_freq = computeWordFrequencies(word_list)       
@@ -87,18 +88,18 @@ def indexer():
 
                     text = page_soup.find_all()                                                 # Get "non-important" words from html
                     text_size = len(text)
+
+                    text = page_soup.find_all(["p", "pre"])
                     for chunk in text:
                         word_list = tokenize_words(chunk.get_text())
-                        word_freq = computeWordFrequencies(word_list)       
+                        word_freq = computeWordFrequencies(word_list)
                         for key in word_freq:
                             index[key][docID][0] += word_freq[key]
 
                     if text_size + important_text_size > 0:                                     # Check if indexer extracted text from tags. If not, ignore.
                         lookup_file.write("{} {}\n".format(docID, json_dict["url"]))            # Append to docID lookup table
-                        docID += 1                                                              
-                        
+                        docID += 1                                                                  
 
-                    
                     # Offload the dictionary index in each of these branches
                     if offload_dict == True:
                         if docID > (ZIP_DOC_NUM / 5) * 4:
@@ -113,6 +114,7 @@ def indexer():
     
     lookup_file.close()
     offload(index, partial_dict)                    # Last offload
+    docID -= 1
     update_indexes(partial_dict, docID) 
     
     # Close all open partial indexes
@@ -153,9 +155,9 @@ def update_indexes(files, doc_nums):
             split_line = line.split()
             for posting in split_line[1:]:
                 split_posting = posting.split(".")
-                tf = 1 + int(split_posting[1]) + (int(split_posting[2]) * 2)
+                tf = int(split_posting[1]) + (int(split_posting[2]) * 2)
                 df = len(split_line[1:])
-                tf_idf = (1 + math.log10(tf)) * math.log(doc_nums / df)
+                tf_idf = (1 + math.log10(tf)) * math.log10(doc_nums / df)
                 partial_index[split_line[0]][int(split_posting[0])] = tf_idf
         
         files[letter].seek(0)

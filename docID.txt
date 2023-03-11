@@ -49633,3 +49633,16 @@
 49633 http://xtune.ics.uci.edu/xtune-pub.htm
 49634 http://xtune.ics.uci.edu/link.htm
 49635 http://xtune.ics.uci.edu/
+
+0 https://www.ics.uci.edu/community/news/view_news.php?id=677
+1 https://www.ics.uci.edu/community/news/view_news.php?id=662
+2 https://www.ics.uci.edu/community/news/view_news.php?id=1523
+0 https://www.ics.uci.edu/community/news/view_news.php?id=677
+1 https://www.ics.uci.edu/community/news/view_news.php?id=662
+2 https://www.ics.uci.edu/community/news/view_news.php?id=1523
+0 https://www.ics.uci.edu/community/news/view_news.php?id=677
+1 https://www.ics.uci.edu/community/news/view_news.php?id=662
+2 https://www.ics.uci.edu/community/news/view_news.php?id=1523
+0 https://www.ics.uci.edu/community/news/view_news.php?id=677
+1 https://www.ics.uci.edu/community/news/view_news.php?id=662
+2 https://www.ics.uci.edu/community/news/view_news.php?id=1523
