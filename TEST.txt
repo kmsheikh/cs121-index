@@ -1,0 +1,50 @@
+﻿TEST QUERIES
+donald bren
+assistant professor
+uci computer science showcase
+undergraduate
+information science
+computer engineering
+lecturer
+research
+women in stem
+projects
+graduate program
+minecraft
+league of legends
+cotton candy
+stinky
+beautiful soup
+little venice
+hot food
+absolute chaos
+russian blue
+golden retriever
+
+
+REASONS AND IMPROVEMENTS
+We noticed that for some of the search queries, which should have relatively good
+results, they were returning websites that didn’t have much emphasis on the query itself
+or they were outranking others that did. For example, “Donald Bren” and
+“undergraduate” were not always returning pages that were relevant or websites that we
+were expecting. We found out that a big issue from this was the fact that in our
+indexer.py, one of the loops was continuously repeating words as it would repeat
+content from previously logged tags. We fixed that, which greatly knocked down
+irrelevant results in our search results. Although we did this for some specific query, this
+greatly improved the quality of search results of almost all of our queries, which was
+expected.
+
+
+All of the html tags were weighted equally, so the content in some of the results were
+irrelevant. We made words in certain tags weigh more so those pages would rank
+higher. Words were important if they were in these tags: <title>, <h1>, <h2>, <h3>, <b>,
+and <strong>. This was due to the fact that we had many pages that were ranked higher
+than those that were more relevant because the “important” tags we deemed were not
+weighted any higher. This would allow some random mention of a query to outrank
+another website which had that query in its title. We later noticed that the weights we
+added were not significant enough as we still had plenty of irrelevant results or results
+that should have been ranked much lower than they were. We played around with
+different multipliers and came up with a much better fitting ranking. This also helped us
+in the areas where some content in the page was still duplicated, which made those be
+weighted much lower. We counted words in <pre> and <p> as page content, but noticed
+that <pre> held irrelevant HTML, so we knocked it down to just reading <p> tags.
